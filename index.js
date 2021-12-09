@@ -101,10 +101,16 @@ app.post("/rooms",async(request,response)=>{
 })
 
 app.get("/booked-rooms",async(request,response)=>{
-    // const filter=request.query // status=booked
     const filter={status:"booked"}
 
-    const result=await client.db("b28wd").collection("rooms").find(filter,{amenities:0,seats:0,price:0}).toArray();
+    const result=await client.db("b28wd").collection("rooms").find(filter,{projection:{amenities:0,seats:0,price:0}}).toArray();
+    response.send(result);
+})
+
+app.get("/customers",async(request,response)=>{
+
+
+    const result=await client.db("b28wd").collection("rooms").find({},{projection:{customer:1,name:1}}).toArray();
     response.send(result);
 })
 
@@ -115,21 +121,21 @@ app.get("/room/:id",async(request,response)=>{
     response.send(result)
 })
 
-app.put("/room/:id",(request,response)=>{
-    const{id}=request.params;
-    const room= await getRoomById(id)
-    console.log(room);
+// app.put("/room/:id",(request,response)=>{
+//     const{id}=request.params;
+//     const room= await getRoomById(id)
+//     console.log(room);
 
-    if(room.status==="booked"){
-        response.send({message:"Room _id  is already booked"})
-    }
+//     if(room.status==="booked"){
+//         response.send({message:"Room _id  is already booked"})
+//     }
 
-    else{
-        const customer_data=request.body
-     const result= await client.db("b28wd").collection("rooms").updateOne({_id:ObjectId(id)},{$set:{customer:customer_data}})
-     response.send("add customer data");
-    }
-})
+//     else{
+//         const customer_data=request.body
+//      const result= await client.db("b28wd").collection("rooms").updateOne({_id:ObjectId(id)},{$set:{customer:customer_data}})
+//      response.send("add customer data");
+//     }
+// })
 
 app.listen(PORT,()=>console.log("App is started in :",PORT));
 
