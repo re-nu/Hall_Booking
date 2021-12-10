@@ -7,12 +7,13 @@ dotenv.config();
 
 const app=express();
 
-const PORT=process.env.PORT;
+const PORT=process.env.PORT;  //hide port becz heroku will start on wthich ever port is empty
 
-app.use(express.json());
+app.use(express.json());   //middleware for all body data to json
 
-const MONGO_URL=process.env.MONGO_URL;
+const MONGO_URL=process.env.MONGO_URL;  //to hide passward from mongo url from atlas
 
+// connect to mongodb
 async function CreateConnection() {
     const client=new MongoClient(MONGO_URL);
     await client.connect();
@@ -20,86 +21,28 @@ async function CreateConnection() {
     return client;
 }
 
+// to have connection globaly available
 const client= await CreateConnection();
 
-const hall=[
-    {
-        "name":"G001",
-        "amenities":["Ac","Wi-Fi","Smart Board","Video Conferencing"],
-        "seats":50,
-        "price":"500/hr",
-        "status":"booked",
-        "customer":{
-            "name":"Jhon",
-            "date":"29/11/2021",
-            "start-time":"9am",
-            "end-time":"1pm"
-        }
-    },
-
-    {
-        "name":"F001",
-        "amenities":["Ac","Wi-Fi","Smart Board","Video Conferencing"],
-        "seats":50,
-        "price":"500/hr",
-        "status":"booked",
-        "customer":{
-            "name":"Bran",
-            "date":"27/11/2021",
-            "start-time":"9am",
-            "end-time":"1pm"
-        }
-    },
-
-    {
-        "name":"F002",
-        "amenities":["Ac","Wi-Fi","Smart Board","Video Conferencing"],
-        "seats":50,
-        "price":"500/hr",
-        "status":"booked",
-        "customer":{
-            "name":"Daisy",
-            "date":"1/12/2021",
-            "start-time":"3pm",
-            "end-time":"6pm"
-        }
-    },
-    
-    {
-        "name":"S001",
-       "amenities":["Ac","Wi-Fi","Smart Board","Video Conferencing"],
-       "seats":50,
-       "price":"500/hr",
-       "status":"Not booked"
-    },
-    {
-        "name":"S002",
-        "amenities":["Ac","Wi-Fi","Smart Board","Video Conferencing"],
-        "seats":50,
-        "price":"500/hr",
-        "status":"Not booked"
-    },
-    
-    {
-        "name":"T001",
-        "amenities":["Ac","Wi-Fi","Smart Board","Video Conferencing"],
-        "seats":50,
-        "price":"500/hr",
-        "status":" Not booked"
-    }
-]
-
-
+// hame page ulr
 app.get("/",(request,response)=>{
     response.send("Hall Booking");
 });
 
+// to get all rooms  toArray becz .find returns curser(pagenation)
+app.get("/rooms",async(request,response)=>{
+    const data= await client.db("b28wd").collection("rooms").find({}).toArray();
+    response.send(data);
+})
+
+// create db "b28ws" with rooms collections and insert many rooms as document 
 app.post("/rooms",async(request,response)=>{
     const data=request.body;
     const result=await client.db("b28wd").collection("rooms").insertMany(data);
     response.send(result);
 })
 
+// get just booked rooms with perticular fields i.e projections
 app.get("/booked-rooms",async(request,response)=>{
     const filter={status:"booked"}
 
@@ -107,6 +50,7 @@ app.get("/booked-rooms",async(request,response)=>{
     response.send(result);
 })
 
+// get all rooms with customers details
 app.get("/customers",async(request,response)=>{
 
 
@@ -114,6 +58,7 @@ app.get("/customers",async(request,response)=>{
     response.send(result);
 })
 
+// get room by _id
 app.get("/room/:id",async(request,response)=>{
     const{id}=request.params;
 
@@ -121,21 +66,26 @@ app.get("/room/:id",async(request,response)=>{
     response.send(result)
 })
 
-// app.put("/room/:id",(request,response)=>{
-//     const{id}=request.params;
-//     const room= await getRoomById(id)
-//     console.log(room);
+// to book room by _id
+app.put("/room/:id",async(request,response)=>{
+    const{id}=request.params;
+    // get room by id to check room is available/booked
+    const room= await getRoomById(id)
+    console.log(room);
 
-//     if(room.status==="booked"){
-//         response.send({message:"Room _id  is already booked"})
-//     }
+    // check if booked
+    if(room.status==="booked"){
+        response.send({message:`Room _id :${id} is already booked`})
+    }
 
-//     else{
-//         const customer_data=request.body
-//      const result= await client.db("b28wd").collection("rooms").updateOne({_id:ObjectId(id)},{$set:{customer:customer_data}})
-//      response.send("add customer data");
-//     }
-// })
+    else{
+        // add customer details eg {"name":"Leo","date":"3/12/2021","start-time":"9am","end-time":"1pm"}
+        const customer_data=request.body
+        // update data and chang status to booked
+     const result= await client.db("b28wd").collection("rooms").updateOne({_id:ObjectId(id)},{$set:{customer:customer_data,status:"booked"}})
+     response.send(room);
+    }
+})
 
 app.listen(PORT,()=>console.log("App is started in :",PORT));
 
